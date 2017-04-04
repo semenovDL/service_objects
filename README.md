@@ -20,7 +20,47 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+class User < ActiveRecord::Base
+  validates :email, uniqueness: true
+end
+
+class User::Create < ServiceObjects::Base
+  attr_caller :email
+
+  def process
+    user = User.create(email: email)
+    errors.push(*user.errors.full_messages) unless user.persisted?
+    user
+  end
+end
+
+process = User::Create.(email: 'alex@gmail.com')
+process.result # #<User:0x007fbc70baab10>
+process.success? # true
+process.call_params # { email: 'alex@gmail.com' }
+process.email # alex@gmail.com
+
+invalid_process = User::Create.(email: 'alex@gmail.com')
+invalid_process.result # nil
+invalid_process.success? # false
+invalid_process.error? # true
+invalid_process.errors # ["Email can't be blank"]
+
+class User::Update < User::Create
+  attr_caller :id, email: nil
+
+  def process
+    User.find(id).tap do |user|
+        user.update(email: email) if email
+    end
+  end
+end
+
+User::Update.(id: 1) do |user|
+  redirect_to user_path(user) and return
+end
+```
 
 ## Development
 
